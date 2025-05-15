@@ -1,0 +1,27 @@
+﻿@rendermode InteractiveServer
+@inject ReaderEventService ReaderEventService
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="" style="width:190px;height:40px;background-image: url('door-testing-facility-logo.png');background-size: cover;"></a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <MudIcon Icon="@Icons.Material.Filled.SpaceDashboard" Size="MudBlazor.Size.Small" Style="margin-right:12px"/> Dashboard
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="table">
+                <MudIcon Icon="@Icons.Material.Filled.TableRestaurant" Size="MudBlazor.Size.Small" Style="margin-right:12px"/> Table View
+            </NavLink>
+        </div>
+    </nav>
+</div>
+

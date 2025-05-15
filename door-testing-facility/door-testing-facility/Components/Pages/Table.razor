@@ -1,0 +1,72 @@
+﻿@page "/table"
+@rendermode InteractiveServer
+@inject ReaderEventService ReaderEventService
+<PageTitle>Table View | Opening and Closing Doors</PageTitle>
+
+<!-- HEADER | RANGE PICKER | CSV UPLOAD -->
+<MudStack Row=true Style="align-items:center;justify-content:space-between">
+    <MudText Typo="Typo.h3">Door Testing Facility | Table View</MudText>
+    @if (ReaderEventService.Events.Count() >= 1)
+    {
+        <MudStack Row=true Style="align-items:center;justify-content:right">
+            <RangePicker OnDateRangeChanged="StateHasChanged"></RangePicker>
+            <CSVUploadButton OnFileUploaded="StateHasChanged" />
+        </MudStack>
+    }
+</MudStack>
+<br/>
+
+
+<MudTable T="ReaderEvent" Items="ReaderEventService.GetFilteredEvents()" Hover="true" Dense="true" Height="70vh" Filter="new Func<ReaderEvent,bool>(FilterFunc)" FixedHeader=true>
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">All Door Testing Testing Events</MudText>
+        <MudSpacer />
+        <RangePicker OnDateRangeChanged="StateHasChanged"></RangePicker>
+        <MudSpacer />
+        <MudTextField T="string" @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start"
+        AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<ReaderEvent, object?>(x=>x.EVENTTIME!.Value.Date)">Date</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ReaderEvent, object?>(x=>x.EVENTTIME!.Value.TimeOfDay)">Time</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ReaderEvent, object?>(x=>x.IDHASH)">Employee</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ReaderEvent, object?>(x=>x.DEVID)">Device</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ReaderEvent, object?>(x=>x.MACHINE)">Machine</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ReaderEvent, object?>(x=>x.READERDESC)">Reader Desc.</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.EVENTTIME!.Value.Date.ToShortDateString()</MudTd>
+        <MudTd>@context.EVENTTIME!.Value.TimeOfDay</MudTd>
+        <MudTd>@context.IDHASH</MudTd>
+        <MudTd>@context.DEVID</MudTd>
+        <MudTd>@context.MACHINE</MudTd>
+        <MudTd>@context.READERDESC</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] {100, 50, 200}"/>
+    </PagerContent>
+</MudTable>
+
+@code {
+    private string searchString = string.Empty;
+
+    private bool FilterFunc(ReaderEvent readerEvent)
+    {
+        // hope you like if statements
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (readerEvent.IDHASH!.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (readerEvent.READERDESC!.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (readerEvent.EVENTTIME!.Value.ToShortDateString()!.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (readerEvent.EVENTTIME!.Value.TimeOfDay.ToString()!.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (readerEvent.DEVID!.ToString()!.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (readerEvent.MACHINE!.ToString()!.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+}

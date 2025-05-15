@@ -1,0 +1,84 @@
+﻿@rendermode InteractiveServer
+@inject ReaderEventService ReaderEventService
+
+<MudPaper Class="pa-6" Style="height:344px;display:flex;flex-direction:column;justify-content:left">
+    <MudText Typo="Typo.h6">
+        Hourly @(ReaderEventService.IsRangeOneDay()?"":"Average") Distribution | @(ReaderEventService.IsRangeOneDay() ?
+        ReaderEventService.SelectedRangeFilter!.Start!.Value.Date.ToShortDateString() :
+        (ReaderEventService.SelectedDayOfWeek == null ? "Selected Timeframe" :
+        ReaderEventService.SelectedDayOfWeek.ToString() + "s"))
+    </MudText>
+    <ApexChart @ref=TimeChart TItem="Hour"
+    Width="@("100%")" Height="244" Options="@options">
+        <ApexPointSeries TItem="Hour"
+        Items="hours"
+        SeriesType="ApexCharts.SeriesType.Line"
+        XValue="@(e => e.HourOfDay.ToString("00")+":00")"
+        YValue="@(e => e.DoorCount / ((ReaderEventService.SelectedDayOfWeek == null)?ReaderEventService.RangeDaysCount():ReaderEventService.GetAllSelectedDays()!.Where(d => d.DayOfWeek == ReaderEventService.SelectedDayOfWeek).Count()))"
+        OrderBy="e=>e.X" Name="Doors Opened"
+        Stroke="@(new ApexCharts.SeriesStroke { Color = "#269ffb", DashSpace = 0, Width = 5 })">
+        </ApexPointSeries>
+        @if (ReaderEventService.IsRangeOneDay())
+        {
+            <ApexPointSeries TItem="Hour"
+            Items="hours"
+            SeriesType="ApexCharts.SeriesType.Line"
+            XValue="@(e => e.HourOfDay.ToString("00")+":00")"
+            YValue="@(e => ReaderEventService.Events.Where(es => es.EVENTTIME!.Value.Hour == e.HourOfDay && es.EVENTTIME!.Value.DayOfWeek == ReaderEventService.SelectedRangeFilter!.Start!.Value.DayOfWeek).Count() / ReaderEventService.GetAllActiveDays()!.Where(d => d.DayOfWeek == ReaderEventService.SelectedRangeFilter!.Start!.Value.DayOfWeek).Count())"
+            OrderBy="e=>e.X" Name=@AverageLegendText
+            Stroke="@(new ApexCharts.SeriesStroke { Color = "#594ae2", DashSpace = 3, Width = 3 })">
+            </ApexPointSeries>
+        }
+    </ApexChart>
+</MudPaper>
+
+@code {
+    public ApexChart<Hour> TimeChart = new();
+    private List<Hour> hours = new();
+    private ApexChartOptions<Hour> options { get; set; } = new();
+    private string AverageLegendText = "Average Doors Opened on ";
+
+    protected override void OnInitialized()
+    {
+        ReaderEventService.SelectedDayOfWeek = null;
+        for (int i = 0; i < 24; i++)
+        {
+            hours.Add(new Hour() { HourOfDay = i, DoorCount = ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.Hour == i).Count() });
+        }
+        options = new ApexChartOptions<Hour>
+            {
+                Chart = new Chart
+                {
+                    Toolbar = new Toolbar
+                    {
+                        Show = false
+                    }
+                }
+            };
+    }
+
+    public async Task Refresh()
+    {
+        hours.Clear();
+        if (ReaderEventService.SelectedDayOfWeek == null)
+        {
+            for (int i = 0; i < 24; i++)
+            {
+                hours.Add(new Hour() { HourOfDay = i, DoorCount = ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.Hour == i).Count() });
+            }
+
+        } else
+        {    
+            for (int i = 0; i < 24; i++)
+            {
+                hours.Add(new Hour() { HourOfDay = i, DoorCount = ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.Hour == i && e.EVENTTIME!.Value.DayOfWeek == ReaderEventService.SelectedDayOfWeek).Count() });
+            }
+        }
+        if (ReaderEventService.IsRangeOneDay()) { 
+            AverageLegendText = "Average Doors Opened on " + ReaderEventService.SelectedRangeFilter!.Start!.Value.DayOfWeek.ToString() + "s";
+            options.Colors = new List<string> { "#269ffb", "#594ae2" };
+        }
+        StateHasChanged();
+        await TimeChart!.RenderAsync();
+    }
+}

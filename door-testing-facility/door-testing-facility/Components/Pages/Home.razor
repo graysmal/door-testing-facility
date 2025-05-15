@@ -1,0 +1,189 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject ReaderEventService ReaderEventService 
+@inject NavigationManager NavigationManager
+<PageTitle>Dashboard | Opening and Closing Doors</PageTitle>
+
+<!-- HEADER | RANGE PICKER | CSV UPLOAD -->
+<MudStack Row=true Style="align-items:center;justify-content:space-between">
+    <MudText Typo="Typo.h3">Door Testing Facility | Dashboard</MudText>
+    @if (ReaderEventService.Events.Count() >= 1)
+    {
+        <MudStack Row=true Style="align-items:center;justify-content:right">
+            <RangePicker OnDateRangeChanged="RefreshAllComponents"></RangePicker>
+            <CSVUploadButton OnFileUploaded="StateHasChanged" />
+        </MudStack>
+    }
+</MudStack>
+<br/>
+@if (ReaderEventService.Events.Count() < 1)
+{
+    <CSVUploadButton style="position: absolute;left: 50%;" OnFileUploaded="StateHasChanged" />
+}
+
+
+
+@if (ReaderEventService.Events.Count() >= 1) { 
+<MudStack Row=true>
+    <!-- LEFT COLUMN | DOORS OPENED | UNIQUE OPENERS | "NAVIGATION" TABLE -->
+    <MudStack Style="width:400px;margin-top:78px">
+        <DoorsOpenedMetric @ref=DoorsOpenedMetric></DoorsOpenedMetric>
+        <UniqueMetric @ref=UniqueMetric></UniqueMetric>
+        @if (MudTabs.ActivePanelIndex == 0) { 
+            <DaysByDoorsOpenedTable OnDaySelected="RefreshAllComponents"></DaysByDoorsOpenedTable>
+        }
+        else if (MudTabs.ActivePanelIndex == 1)
+        {
+            <OpenersByDoorsOpenedTable OnOpenerSelected="RefreshAllComponents"></OpenersByDoorsOpenedTable>
+        }
+        else
+        {
+            <DoorsByTimesOpenedTable OnDoorSelected="RefreshAllComponents"></DoorsByTimesOpenedTable>
+        }
+    </MudStack>
+
+    <!-- RIGHT COLUMN | TIMELY DISTRIBUTIONS | OPENER INSIGHTS | DOOR INSIGHTS -->
+    <MudStack Style="width:70%">
+        <MudTabs @ref=MudTabs>
+            <MudTabPanel Text="Timely Distributions" OnClick="StateHasChanged">
+                <MudStack>
+                    <HourlyLineChart @ref=HourlyLineChart></HourlyLineChart>
+                    @if (!ReaderEventService.IsRangeOneDay()) {
+                        <DayOfWeekBarChart @ref=DayOfWeekBarChart OnDayOfWeekSelected="RefreshWeekOfDayMetrics"></DayOfWeekBarChart>
+                    }
+                    else
+                    {
+                        <!-- NUMBER ONE OPENER | NUMBER ONE DOOR -->
+                        <MudStack Row=true>
+                            <MudPaper Class="pa-6" Style="height:200px;display:flex;flex-direction:column;justify-content:center;width:50%">
+                                <MudText Typo="Typo.h6">Number One Opener</MudText>
+                                <MudButton EndIcon="@Icons.Material.Filled.ArrowOutward" Style="justify-content: left;" OnClick=@(() => {GoToOpener(ReaderEventService.GetTopXOpeners(1).First().Key);})>
+                                    <MudText Style="text-overflow: ellipsis;overflow: hidden;" Typo="Typo.h5">@ReaderEventService.GetTopXOpeners(1).First().Key</MudText>
+                                </MudButton>
+                                <MudText Typo="Typo.subtitle1">Loves @(ReaderEventService.GetFilteredEvents().Where(e => e.IDHASH == ReaderEventService.GetTopXOpeners(1).First().Key).GroupBy(e => e.READERDESC).OrderByDescending(e => e.Count()).First().Key).</MudText>
+                            </MudPaper>
+                            <MudPaper Class="pa-6" Style="height:200px;display:flex;flex-direction:column;justify-content:center;width:50%">
+                                <MudText Typo="Typo.h6">Number One Door</MudText>
+                                <MudButton EndIcon="@Icons.Material.Filled.ArrowOutward" Style="width: fit-content;justify-content: left;" OnClick=@(() => {GoToDoor(ReaderEventService.GetTopXDoors(1).First().Key);})>
+                                    <MudText Style="text-align: left;" Typo="Typo.h5">@ReaderEventService.GetTopXDoors(1).First().Key</MudText>
+                                </MudButton>
+                                <MudText Typo="Typo.subtitle1">Device @(ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == ReaderEventService.GetTopXDoors(1).First().Key).First().DEVID) | Machine @(ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == ReaderEventService.GetTopXDoors(1).First().Key).First().MACHINE).</MudText>
+                            </MudPaper>
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudTabPanel>
+            <MudTabPanel Text="Opener insights" OnClick="StateHasChanged">
+                <MudStack>
+                    <DoorsByTimesOpenerOpened @ref=DoorsByTimesOpenerOpened></DoorsByTimesOpenerOpened>
+                        <ActiveHoursByOpenerOpensTable @ref=ActiveHoursByOpenerOpensTable></ActiveHoursByOpenerOpensTable>
+                </MudStack>
+            </MudTabPanel>
+            <MudTabPanel Text="Door insights" OnClick="StateHasChanged">
+                @if (ReaderEventService.SelectedDoor == null)
+                {
+                    <ActivityByMachineChart @ref=ActivityByMachineChart></ActivityByMachineChart>
+                }
+                else
+                {
+                    <MudStack>
+                        <MudPaper Class="pa-6" Style="display:flex;flex-direction:column;justify-content:center;width:100%">
+                            <MudText Typo="Typo.h6">@ReaderEventService.SelectedDoor</MudText>
+                            <MudStack Row="true">
+                                <MudText Typo="Typo.h3">MACHINE @ReaderEventService.Events.Where(e => e.READERDESC == ReaderEventService.SelectedDoor).First().MACHINE</MudText>
+                                <MudText Typo="Typo.h3">DEVICE @ReaderEventService.Events.Where(e => e.READERDESC == ReaderEventService.SelectedDoor).First().DEVID</MudText>
+                            </MudStack>
+                        </MudPaper>
+                        <OpenersByTimesOpenedTable @ref=OpenersByTimesOpenedTable></OpenersByTimesOpenedTable>
+                        <ActiveHoursByTimesOpenedTable @ref=ActiveHoursByTimesOpenedTable></ActiveHoursByTimesOpenedTable>
+                    </MudStack>
+                }
+            </MudTabPanel>
+        </MudTabs>
+    </MudStack>
+</MudStack>
+}
+<style>
+    .mud-typography-h6 {
+        color: var(--mud-palette-primary)
+    }
+
+    .mud-typography-h2 {
+        color: rgb(70, 173, 251)
+    }
+
+    .mud-dialog-content {
+        padding: 0px !important;
+    }
+
+    .mud-dialog-title {
+        padding: 0px !important;
+    }
+
+    .mud-dialog-width-sm {
+        max-width: inherit;
+    }
+</style>
+
+@code {
+    // Would be wise to move each Tab's content to its own component for performance.
+    private DoorsOpenedMetric DoorsOpenedMetric = new();
+    private UniqueMetric UniqueMetric = new();
+    private MudTabs MudTabs = new();
+    private HourlyLineChart HourlyLineChart = new();
+    private DayOfWeekBarChart DayOfWeekBarChart = new();
+    private DoorsByTimesOpenerOpened DoorsByTimesOpenerOpened = new();
+    private ActiveHoursByOpenerOpensTable ActiveHoursByOpenerOpensTable = new();
+    private ActivityByMachineChart ActivityByMachineChart = new();
+    private OpenersByTimesOpenedTable OpenersByTimesOpenedTable = new();
+    private ActiveHoursByTimesOpenedTable ActiveHoursByTimesOpenedTable = new();
+
+
+    /* Refreshes Doors Opened, Unique Openers metrics and filters Hourly Average Distribution  
+         * Needed separately so that clicking on a day of the week doesn't immediately deselect the day
+         */
+    private async Task RefreshWeekOfDayMetrics()
+    {
+        await DoorsOpenedMetric.Refresh();
+        await UniqueMetric.Refresh();
+        await HourlyLineChart.Refresh();
+    }
+
+    /* Refreshes components on selected MudTab */
+    private async Task RefreshAllComponents()
+    {
+        ReaderEventService.SelectedDayOfWeek = null;
+        await InvokeAsync(StateHasChanged);
+        if (MudTabs.ActivePanelIndex == 0)
+        {
+            await RefreshWeekOfDayMetrics();
+            await DayOfWeekBarChart.Refresh();
+        }
+        else if (MudTabs.ActivePanelIndex == 1)
+        {
+            await DoorsByTimesOpenerOpened.Refresh();
+            await ActiveHoursByOpenerOpensTable.Refresh();
+        }
+        else
+        {
+            await ActivityByMachineChart.Refresh();
+            await OpenersByTimesOpenedTable.Refresh();
+            await ActiveHoursByTimesOpenedTable.Refresh();
+        }
+    }
+
+    private void GoToOpener(string idhash)
+    {
+        ReaderEventService.SelectedOpener = idhash;
+        MudTabs.ActivePanelIndex = 1;
+        _ = RefreshAllComponents();
+    }
+
+    private void GoToDoor(string idhash)
+    {
+        ReaderEventService.SelectedDoor = idhash;
+        MudTabs.ActivePanelIndex = 2;
+        _ = RefreshAllComponents();
+    }
+
+}

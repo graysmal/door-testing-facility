@@ -1,0 +1,22 @@
+﻿@inject ReaderEventService ReaderEventService
+
+<MudPaper Class="pa-6" Style="height:150px;display:flex;flex-direction:column;justify-content:center">
+    @if (ReaderEventService.SelectedDayOfWeek != null)
+    {
+        <MudText Typo="Typo.h6">Doors Opened | @(ReaderEventService.SelectedDayOfWeek)s</MudText>
+        <MudText Typo="Typo.h2">@ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.DayOfWeek == ReaderEventService.SelectedDayOfWeek).Count().ToString("N0")</MudText>
+        <MudText Typo="Typo.subtitle1">Great job @(ReaderEventService.SelectedDayOfWeek)-goers!</MudText>
+    }
+    else {
+        <MudText Typo="Typo.h6">Doors Opened</MudText>
+        <MudText Typo="Typo.h2">@ReaderEventService.GetFilteredEvents().Count().ToString("N0")</MudText>
+        <MudText Typo="Typo.subtitle1">Great job openers!</MudText>
+    }
+</MudPaper>
+
+@code {
+    public async Task Refresh()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+}

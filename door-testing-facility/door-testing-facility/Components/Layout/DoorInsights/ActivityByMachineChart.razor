@@ -1,0 +1,64 @@
+﻿@inject ReaderEventService ReaderEventService
+@rendermode InteractiveServer
+
+<MudPaper Class="pa-6" Style="height:705px;display:flex;flex-direction:column;justify-content:left">
+    <MudText Typo="Typo.h6">
+        Activity by Machine and Device
+    </MudText>
+    <ApexChart @ref=chart TItem="ReaderEvent" Height="605" Options="options">
+
+        @foreach (int devID in ReaderEventService.GetFilteredEvents().Select(e => e.DEVID!.Value).Distinct().OrderBy(e => e))
+        {
+            <ApexPointSeries TItem="ReaderEvent"
+            Items="ReaderEventService.GetFilteredEvents()"
+            Name="@("Device " + devID)"
+            SeriesType="SeriesType.Bar"
+            XValue="@(e => "Machine " + e.MACHINE.ToString())"
+            YAggregate="@(e => e.Where(e => e.DEVID == devID).Count())"
+            OrderByDescending="e=>e.Y"
+            ShowDataLabels />
+        }
+
+    </ApexChart>
+</MudPaper>
+
+@code {
+    private ApexChart<ReaderEvent> chart = new();
+    private ApexChartOptions<ReaderEvent> options { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        options = new ApexChartOptions<ReaderEvent>
+            {
+                Chart = new Chart
+                {
+                    Stacked = true,
+                    Toolbar = new Toolbar
+                    {
+                        Show = false
+                    }
+                },
+                PlotOptions = new PlotOptions
+                {
+                    Bar = new PlotOptionsBar
+                    {
+                        Horizontal = false,
+                        BorderRadius = 10,
+                        BorderRadiusApplication = BorderRadiusApplication.Around,
+                        BorderRadiusWhenStacked = BorderRadiusWhenStacked.All
+                    }
+                },
+                Legend = new Legend
+                {
+                    Show = false,
+                }
+            };
+    }
+
+    public async Task Refresh()
+    {
+        StateHasChanged();
+        await chart.RenderAsync();
+        
+    }
+}

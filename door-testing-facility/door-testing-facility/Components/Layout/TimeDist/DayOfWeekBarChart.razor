@@ -1,0 +1,61 @@
+﻿@inject ReaderEventService ReaderEventService
+
+<MudPaper Class="pa-6" Style="height:344px;display:flex;flex-direction:column;justify-content:left">
+    <MudText Typo="Typo.h6">Daily Average Distributions</MudText>
+    <ApexChart @ref=DayChart TItem="ReaderEvent" Width="@("100%")" Height="244" Options="@options" OnDataPointSelection="OnDataSelected">
+        <ApexPointSeries TItem="ReaderEvent"
+        Items="@ReaderEventService.GetFilteredEvents()"
+        SeriesType="ApexCharts.SeriesType.Bar"
+        XValue="@(e => (e.EVENTTIME!.Value.DayOfWeek))"
+        YAggregate="@(e => e.Count() / Math.Max(1,(ReaderEventService.GetAllSelectedDays()!.Where(d => d.DayOfWeek == ReaderEventService.SelectedRangeFilter!.Start!.Value.DayOfWeek).Count())))"
+        OrderBy="e=>e.X" Name="Doors opened"
+        >
+        </ApexPointSeries>
+    </ApexChart>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public EventCallback OnDayOfWeekSelected { get; set; }
+
+    [Parameter]
+    public String? Style { get; set; }
+
+    [Parameter]
+    public bool Hidden { get; set; }
+
+    public ApexChart<ReaderEvent> DayChart = new();
+    private ApexChartOptions<ReaderEvent> options { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        options = new ApexChartOptions<ReaderEvent>
+            {
+                Chart = new Chart
+                {
+                    Toolbar = new Toolbar
+                    {
+                        Show = false
+                    }
+                }
+            };
+    }
+    private async Task OnDataSelected(SelectedData<ReaderEvent> data)
+    {
+        DayOfWeek? clickedDay = data.DataPoint.Items.FirstOrDefault()?.EVENTTIME?.DayOfWeek;
+        if (ReaderEventService.SelectedDayOfWeek == clickedDay) ReaderEventService.SelectedDayOfWeek = null;
+        else ReaderEventService.SelectedDayOfWeek = clickedDay;
+        await OnDayOfWeekSelected.InvokeAsync();
+    }
+
+    public async Task Refresh()
+    {
+        await Task.Delay(100);
+        StateHasChanged();
+        if (DayChart == null)
+        {
+            await Task.Delay(300);
+        }
+        await DayChart!.RenderAsync();
+    }
+}

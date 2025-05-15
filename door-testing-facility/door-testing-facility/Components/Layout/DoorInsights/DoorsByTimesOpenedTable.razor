@@ -1,0 +1,120 @@
+﻿@inject ReaderEventService ReaderEventService
+<style>
+    .selected {
+    background-color: #1E88E5 !important;
+    }
+
+    .selected > td {
+    color: white !important;
+    }
+
+    .selected > td .mud-input {
+    color: white !important;
+    }
+
+    .mud-toolbar {
+    margin-left: 0px;
+    padding-left: 0px;
+    }
+</style>
+@if (ReaderEventService.SelectedRangeFilter != null)
+{
+    <MudTable @ref=table Class="pa-6" T="ReaderEvent" Items="ReaderEventService.GetFilteredEvents().DistinctBy(e => e.READERDESC)" Height="230px" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true" RowClass="cursor-pointer" FixedHeader="true" OnRowClick="RowClickEvent" RowClassFunc="@SelectedRowClassFunc">
+        <ToolBarContent>
+            <MudStack Row=true Style="justify-content:space-between;align-items:center;width: 100%">
+                <MudText Typo="Typo.h6">Doors by Times Opened</MudText>
+                <MudToggleIconButton @bind-Toggled=Fullscreen ToggledIcon="@Icons.Material.Filled.FullscreenExit" Icon="@Icons.Material.Filled.Fullscreen"></MudToggleIconButton>
+            </MudStack>
+        </ToolBarContent>
+        <ColGroup>
+            <col style="width:50%;" />
+            <col style="width:50%;" />
+        </ColGroup>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortBy="new Func<ReaderEvent, object>(x=>x.READERDESC!)">Door</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="new Func<ReaderEvent, object>(x=>ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC! == x.READERDESC).Count())">Times Opened</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="door"><MudTooltip Text="@(context.READERDESC)" Placement="Placement.Top">@(context.READERDESC!.Substring(0, 10))...</MudTooltip></MudTd>
+            <MudTd DataLabel="times-opened">@(ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == context.READERDESC).Count())</MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <MudDialog @bind-Visible="Fullscreen" Style=";width:70vw">
+        <DialogContent>
+            <MudTable @ref=table Class="pa-6" T="ReaderEvent" Items="ReaderEventService.GetFilteredEvents().DistinctBy(e => e.READERDESC)" Height="512px" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true" RowClass="cursor-pointer" FixedHeader="true" OnRowClick="RowClickEvent" RowClassFunc="@SelectedRowClassFunc" Filter="new Func<ReaderEvent,bool>(FilterFunc)">
+                <ToolBarContent>
+                    <MudStack Row=true Style="justify-content:space-between;align-items:center;width: 100%">
+                        <MudText Typo="Typo.h6">Doors by Times Opened</MudText>
+                        <MudTextField T="string" @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0"></MudTextField>
+                        <MudToggleIconButton @bind-Toggled=Fullscreen ToggledIcon="@Icons.Material.Filled.FullscreenExit" Icon="@Icons.Material.Filled.Fullscreen"></MudToggleIconButton>
+                    </MudStack>
+                </ToolBarContent>
+                <ColGroup>
+                    <col style="width:50%;" />
+                    <col style="width:50%;" />
+                </ColGroup>
+                <HeaderContent>
+                    <MudTh><MudTableSortLabel SortBy="new Func<ReaderEvent, object>(x=>x.READERDESC!)">Door</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="new Func<ReaderEvent, object>(x=>ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC! == x.READERDESC).Count())">Times Opened</MudTableSortLabel></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="door">@context.READERDESC</MudTd>
+                    <MudTd DataLabel="times-opened">@(ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == context.READERDESC).Count())</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </DialogContent>
+    </MudDialog>
+}
+
+@code {
+    [Parameter]
+    public EventCallback OnDoorSelected { get; set; }
+    private bool Fullscreen = false;
+
+    private MudTable<ReaderEvent> table = new();
+
+    private string searchString = string.Empty;
+
+    private bool FilterFunc(ReaderEvent readerEvent)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (readerEvent.READERDESC!.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == readerEvent.READERDESC).Count().ToString().Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<ReaderEvent> tableRowClickEventArgs)
+    {
+        if (ReaderEventService.SelectedDoor == tableRowClickEventArgs.Item!.READERDESC!)
+        {
+            ReaderEventService.SelectedDoor = null!;
+        }
+        else { 
+            ReaderEventService.SelectedDoor = tableRowClickEventArgs.Item!.READERDESC!;
+        }
+        StateHasChanged();
+        OnDoorSelected.InvokeAsync();
+        return;
+    }
+
+    private String SelectedRowClassFunc(ReaderEvent readerEvent, int rowNumber)
+    {
+        if (ReaderEventService.SelectedDoor == readerEvent.READERDESC)
+        {
+            return "selected";
+        }
+        if (table.SelectedItem == readerEvent)
+        {
+            return string.Empty;
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

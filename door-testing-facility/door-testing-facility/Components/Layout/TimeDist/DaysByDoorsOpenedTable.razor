@@ -1,0 +1,71 @@
+﻿@inject ReaderEventService ReaderEventService
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+
+        .selected > td {
+            color: white !important;
+        }
+
+            .selected > td .mud-input {
+                color: white !important;
+            }
+    .mud-toolbar {
+        margin-left: 0px;
+        padding-left: 0px;
+    }
+</style>
+@if (ReaderEventService.SelectedRangeFilter != null) {
+    <MudTable @ref=table Class="pa-6" T="DateTime" Items="ReaderEventService.GetAllSelectedDays()" Height="230px" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true" RowClass="cursor-pointer" FixedHeader="true" OnRowClick="RowClickEvent" RowClassFunc="@SelectedRowClassFunc">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Active Days by Doors Opened</MudText>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<DateTime, object>(x=>x.Date)">Date</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<DateTime, object>(x=>ReaderEventService.Events.Where(e => e.EVENTTIME!.Value.Date == x.Date).Count())">Doors Opened</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="time">@context.ToShortDateString()</MudTd>
+            <MudTd DataLabel="doors">@(ReaderEventService.Events.Where(e => e.EVENTTIME!.Value.Date == context.Date).Count())</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter]
+    public EventCallback OnDaySelected { get; set; }
+
+    private MudTable<DateTime> table = new();
+
+    private void RowClickEvent(TableRowClickEventArgs<DateTime> tableRowClickEventArgs)
+    {
+        if (ReaderEventService.IsRangeOneDay() && table.SelectedItem.Date == ReaderEventService.SelectedRangeFilter!.Start!.Value.Date)
+        {
+            ReaderEventService.SelectedRangeFilter = new DateRange(ReaderEventService.GetEarliestEventDate()!.Value.Date, ReaderEventService.GetLatestEventDate()!.Value.Date);
+        }
+        else
+        {
+            ReaderEventService.SelectedRangeFilter = new DateRange(tableRowClickEventArgs.Item.Date, tableRowClickEventArgs.Item.Date);
+        }
+        _ = OnDaySelected.InvokeAsync();
+        StateHasChanged();
+        return;
+    }
+
+    private String SelectedRowClassFunc(DateTime date, int rowNumber)
+    {
+        if (ReaderEventService.IsRangeOneDay() && ReaderEventService.SelectedRangeFilter!.Start!.Value.Date == date.Date)
+        {
+            return "selected";
+        }
+        if (table.SelectedItem == date)
+        {
+            return string.Empty;
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+}

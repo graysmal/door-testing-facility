@@ -1,0 +1,29 @@
+﻿@rendermode InteractiveServer
+@inject ReaderEventService ReaderEventService
+
+<MudForm Style="@Style">
+    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChanged">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Filled"
+            Color="MudBlazor.Color.Primary"
+            StartIcon="@Icons.Material.Filled.AttachFile"
+            Style="height:40px">
+                Upload .CSV Data
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+</MudForm>
+
+@code {
+    [Parameter]
+    public EventCallback OnFileUploaded { get; set; }
+
+    [Parameter]
+    public String? Style { get; set; }
+
+    private async Task OnFileChanged(IBrowserFile file)
+    {
+        await ReaderEventService.SetEvents(file.OpenReadStream(1434809));
+        await OnFileUploaded.InvokeAsync();
+    }
+}

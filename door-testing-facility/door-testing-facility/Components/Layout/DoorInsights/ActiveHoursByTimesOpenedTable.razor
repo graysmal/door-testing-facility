@@ -1,0 +1,64 @@
+﻿@inject ReaderEventService ReaderEventService
+
+<MudTable @ref=table Class="pa-6" Style="padding-top:0px !important" T="DateTime" Items="ReaderEventService.GetAllActiveHours()" Height="181px" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true" RowClass="cursor-pointer" FixedHeader="true">
+    <ToolBarContent>
+        <MudStack Row=true Style="justify-content:space-between;width: 100%">
+            <MudText Typo="Typo.h6">Active Hours by Times Opened | @ReaderEventService.SelectedDoor</MudText>
+            <MudToggleIconButton @bind-Toggled=Fullscreen ToggledIcon="@Icons.Material.Filled.FullscreenExit" Icon="@Icons.Material.Filled.Fullscreen"></MudToggleIconButton>
+        </MudStack>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<DateTime, object>(x=>x)">Time</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<DateTime, object>(x=>ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.Hour == x.Hour && e.READERDESC == ReaderEventService.SelectedDoor).Count())">Times Opened</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="time">@context.ToShortTimeString()</MudTd>
+        <MudTd DataLabel="opens">@(ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.Hour == context.Hour && e.READERDESC == ReaderEventService.SelectedDoor).Count())</MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudDialog @bind-Visible="Fullscreen" Style=";width:70vw">
+    <DialogContent>
+        <MudTable @ref=table Class="pa-6" Style="padding-top:0px !important" T="DateTime" Items="ReaderEventService.GetAllActiveHours()" Height="512px" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true" RowClass="cursor-pointer" FixedHeader="true" Filter="new Func<DateTime,bool>(FilterFunc)">
+            <ToolBarContent>
+                <MudStack Row=true Style="justify-content:space-between;width: 100%">
+                    <MudText Typo="Typo.h6">Active Hours by Times Opened | @ReaderEventService.SelectedDoor</MudText>
+                    <MudTextField T="string" @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0"></MudTextField>
+                    <MudToggleIconButton @bind-Toggled=Fullscreen ToggledIcon="@Icons.Material.Filled.FullscreenExit" Icon="@Icons.Material.Filled.Fullscreen"></MudToggleIconButton>
+                </MudStack>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<DateTime, object>(x=>x)">Time</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel SortBy="new Func<DateTime, object>(x=>ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.Hour == x.Hour && e.READERDESC == ReaderEventService.SelectedDoor).Count())">Times Opened</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="time">@context.ToShortTimeString()</MudTd>
+                <MudTd DataLabel="opens">@(ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.Hour == context.Hour && e.READERDESC == ReaderEventService.SelectedDoor).Count())</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    private MudTable<DateTime> table = new();
+    private bool Fullscreen = false;
+
+    private string searchString = string.Empty;
+
+    private bool FilterFunc(DateTime dateTime)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (dateTime.ToShortTimeString().Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (ReaderEventService.GetFilteredEvents().Where(e => e.EVENTTIME!.Value.Hour == dateTime.Hour && e.READERDESC == ReaderEventService.SelectedDoor).Count().ToString().Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    public async Task Refresh()
+    {
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,67 @@
+﻿@inject ReaderEventService ReaderEventService
+@inject IDialogService DialogService
+
+
+
+<MudTable @ref=table Class="pa-6" Style=";padding-top:0px !important" T="string" Items="ReaderEventService.GetFilteredEvents().Select(e => e.READERDESC).Distinct()" Height="256px" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true" RowClass="cursor-pointer" FixedHeader="true">
+    <ToolBarContent>
+        <MudStack Row=true Style="justify-content:space-between;width: 100%">
+            <MudText Typo="Typo.h6">Doors by Times Opened | @ReaderEventService.SelectedOpener</MudText>
+            <MudToggleIconButton @bind-Toggled=Fullscreen ToggledIcon="@Icons.Material.Filled.FullscreenExit" Icon="@Icons.Material.Filled.Fullscreen"></MudToggleIconButton>
+        </MudStack>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<string, object>(x=>x)">Door</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending"  SortBy="new Func<string, object>(x=>ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == x && e.IDHASH == ReaderEventService.SelectedOpener).Count())">Times Opened</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="opener">@context</MudTd>
+        <MudTd DataLabel="opens">@(ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == context && e.IDHASH == ReaderEventService.SelectedOpener).Count())</MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudDialog @bind-Visible="Fullscreen" Style=";width:70vw">
+    <DialogContent>
+        <MudTable @ref=table Class="pa-6" Style=";padding-top:0px !important" T="string" Items="ReaderEventService.GetFilteredEvents().Select(e => e.READERDESC).Distinct()" Filter="new Func<string,bool>(FilterFunc)" Hover="true" Height="512px" Breakpoint="Breakpoint.Sm" Dense="true" RowClass="cursor-pointer" FixedHeader="true">
+            <ToolBarContent>
+                <MudStack Row=true Style="justify-content:space-between;width: 100%">
+                    <MudText Typo="Typo.h6">Doors by Times Opened | @ReaderEventService.SelectedOpener</MudText>
+                    <MudTextField T="string" @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start"
+        AdornmentIcon="@Icons.Material.Filled.Search" IconSize="MudBlazor.Size.Medium" Class="mt-0"></MudTextField>
+                    <MudToggleIconButton @bind-Toggled=Fullscreen ToggledIcon="@Icons.Material.Filled.FullscreenExit" Icon="@Icons.Material.Filled.Fullscreen"></MudToggleIconButton>
+                </MudStack>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh><MudTableSortLabel SortBy="new Func<string, object>(x=>x)">Door</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="new Func<string, object>(x=>ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == x && e.IDHASH == ReaderEventService.SelectedOpener).Count())">Times Opened</MudTableSortLabel></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="opener">@context</MudTd>
+                <MudTd DataLabel="opens">@(ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == context && e.IDHASH == ReaderEventService.SelectedOpener).Count())</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    private MudTable<string> table = new();
+    private bool Fullscreen = false;
+
+    private string searchString = string.Empty;
+
+    private bool FilterFunc(String readerDesc)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (readerDesc.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (ReaderEventService.GetFilteredEvents().Where(e => e.READERDESC == readerDesc && e.IDHASH == ReaderEventService.SelectedOpener).Count().ToString().Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    public async Task Refresh()
+    {
+        StateHasChanged();
+    }
+}

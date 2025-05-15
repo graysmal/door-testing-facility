@@ -1,0 +1,59 @@
+﻿@inject ReaderEventService ReaderEventService
+
+<style>
+    .mud-picker > .mud-input-control {
+    opacity: 0;
+    height: 0px;
+    overflow: hidden;
+    }
+</style>
+
+<div>
+    <MudButton OnClick="@(() => {MudDateRangePicker!.OpenAsync();})" Style="width: max-content;">
+        <MudStack Row=true AlignItems="MudBlazor.AlignItems.Center">
+            @if (ReaderEventService.SelectedRangeFilter != null) { 
+                    <MudTextField T="string"
+                    Disabled=true
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"
+                    Text="@ReaderEventService!.SelectedRangeFilter!.Start!.Value.ToShortDateString()"
+                    AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                    Adornment="Adornment.Start"
+                    Style="pointer-events: none;width:140px">
+                    </MudTextField>
+                    <MudText>to</MudText>
+                    <MudTextField T="string"
+                    Disabled=true
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"
+                    Text="@ReaderEventService!.SelectedRangeFilter!.End!.Value.ToShortDateString()"
+                    AdornmentIcon="@Icons.Material.Filled.CalendarToday"
+                    Adornment="Adornment.Start"
+                    Style="pointer-events: none;width:140px">
+                    </MudTextField>
+            }
+        </MudStack>
+    </MudButton>
+    <MudStack Row=true Spacing="0">
+        <MudDateRangePicker @ref="MudDateRangePicker"
+        DisplayMonths="1"
+        ShowToolbar=false
+        Style="height: fit-content;width:min-content"
+        DateRange=ReaderEventService.SelectedRangeFilter
+        DateRangeChanged="OnDateRangeSelected"
+        IsDateDisabledFunc="@((DateTime dt)=>(dt.Date < ReaderEventService.GetEarliestEventDate()!.Value.Date || dt > ReaderEventService.GetLatestEventDate()))">
+        </MudDateRangePicker>
+    </MudStack>
+</div>
+@code {
+    [Parameter]
+    public EventCallback OnDateRangeChanged { get; set; }
+
+    private MudDateRangePicker? MudDateRangePicker { get; set; } = default!;
+
+    public void OnDateRangeSelected(DateRange dateRange)
+    {
+        ReaderEventService.SelectedRangeFilter = dateRange;
+        _ = OnDateRangeChanged.InvokeAsync();
+    }
+}
